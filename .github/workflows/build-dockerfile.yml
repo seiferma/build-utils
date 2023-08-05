@@ -23,6 +23,10 @@ on:
         required: false
         type: string
         default: ''
+      suppress-push:
+        required: false
+        type: boolean
+        default: false
     secrets:
       registry-user:
         required: true
@@ -56,9 +60,11 @@ jobs:
 
         # determine if we should push the image
         PUSH=false
-        if [[ "$EVENT_NAME" == "push" ]] || [[ "$EVENT_NAME" == "schedule" ]]; then
-          if [[ "$REF_NAME" == "$DEFAULT_BRANCH" ]] || [[ $REF_TYPE == "tag" ]]; then
-            PUSH=true
+        if [[ "$REQUESTED_SUPPRESS_PUSH" != "true" ]]; then
+          if [[ "$EVENT_NAME" == "push" ]] || [[ "$EVENT_NAME" == "schedule" ]]; then
+            if [[ "$REF_NAME" == "$DEFAULT_BRANCH" ]] || [[ $REF_TYPE == "tag" ]]; then
+              PUSH=true
+            fi
           fi
         fi
 
@@ -67,6 +73,7 @@ jobs:
         echo "push=$PUSH" >> "$GITHUB_OUTPUT"
       env:
         REQUESTED_TAG: ${{ inputs.tag }}
+        REQUESTED_SUPPRESS_PUSH: ${{ inputs.suppress-push }}
         REGISTRY: ${{ inputs.registry-host }}
         REF_NAME: ${{ github.ref_name }}
         REF_TYPE: ${{ github.ref_type }}
