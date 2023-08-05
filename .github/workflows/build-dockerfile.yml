@@ -15,6 +15,14 @@ on:
       registry-host:
         required: true
         type: string
+      build-args:
+        required: false
+        type: string
+        default: ''
+      tag:
+        required: false
+        type: string
+        default: ''
     secrets:
       registry-user:
         required: true
@@ -34,12 +42,15 @@ jobs:
       shell: bash
       run: |
         # build image tag
-        TAG=$REF_NAME
-        if [[ "$EVENT_NAME" == "pull_request" ]]; then
-          TAG=$BASE_REF
-        fi
-        if [[ "$TAG" == "$DEFAULT_BRANCH" ]]; then
-          TAG=latest
+        TAG=$REQUESTED_TAG
+        if [[ "$REQUESTED_TAG" == "" ]]; then
+          TAG=$REF_NAME
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            TAG=$BASE_REF
+          fi
+          if [[ "$TAG" == "$DEFAULT_BRANCH" ]]; then
+            TAG=latest
+          fi
         fi
         TAG=$REGISTRY/$IMAGE_NAME:$TAG
 
@@ -55,6 +66,7 @@ jobs:
         echo "tag=$TAG" >> "$GITHUB_OUTPUT"
         echo "push=$PUSH" >> "$GITHUB_OUTPUT"
       env:
+        REQUESTED_TAG: ${{ inputs.tag }}
         REGISTRY: ${{ inputs.registry-host }}
         REF_NAME: ${{ github.ref_name }}
         REF_TYPE: ${{ github.ref_type }}
@@ -90,3 +102,4 @@ jobs:
         platforms: ${{ inputs.platforms }}
         push: ${{ steps.parameter-derivation.outputs.push }}
         tags: ${{ steps.parameter-derivation.outputs.tag }}
+        build-args: ${{ inputs.build-args }}
