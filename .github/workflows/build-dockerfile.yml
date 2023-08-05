@@ -45,7 +45,7 @@ jobs:
 
         # determine if we should push the image
         PUSH=false
-        if [[ "$EVENT_NAME" == "push" ]]; then
+        if [[ "$EVENT_NAME" == "push" ]] || [[ "$EVENT_NAME" == "schedule" ]]; then
           if [[ "$REF_NAME" == "$DEFAULT_BRANCH" ]] || [[ $REF_TYPE == "tag" ]]; then
             PUSH=true
           fi
