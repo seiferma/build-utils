@@ -79,6 +79,11 @@ jobs:
         EVENT_NAME: ${{ github.event_name }}
         DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         IMAGE_NAME: ${{ inputs.image-name }}
+    - name: Check If Tests Exist
+      id: tests-exist
+      uses: andstor/file-existence-action@v3
+      with:
+        files: '${{ inputs.working-directory }}/tests/requirements.txt'
     -
       name: Set up QEMU
       uses: docker/setup-qemu-action@v3
@@ -91,6 +96,30 @@ jobs:
         driver-opts: |
           network=host
     -
+      name: Build Test Subject
+      uses: docker/bake-action@v6
+      if: steps.tests-exist.outputs.files_exists == 'true'
+      with:
+        builder: ${{ steps.buildx-setup.outputs.name }}
+        workdir: ${{ inputs.working-directory }}
+        targets: test
+        pull: true
+        push: false
+        load: true
+      env:
+        GIT_TAG: ${{ steps.parameter-derivation.outputs.tag }}
+        DOCKER_BUILD_SUMMARY: false
+    -
+      name: Set Up Test Environment 
+      if: steps.tests-exist.outputs.files_exists == 'true'
+      run: |
+        pip3 install pytest pytest-emoji pytest-md
+        pip3 install -r ${{ inputs.working-directory }}/tests/requirements.txt
+    -
+      name: Test
+      uses: pavelzw/pytest-action@v2
+      if: steps.tests-exist.outputs.files_exists == 'true'
+    -
       name: Login to Docker Registry
       uses: docker/login-action@v3
       if: steps.parameter-derivation.outputs.push == 'true'
@@ -99,7 +128,7 @@ jobs:
         username: ${{ secrets.registry-user }}
         password: ${{ secrets.registry-password }}
     -
-      name: Build and push
+      name: Build and Push
       uses: docker/bake-action@v6
       with:
         builder: ${{ steps.buildx-setup.outputs.name }}
